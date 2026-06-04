@@ -17,6 +17,8 @@ Options:
   -f --fast                  Skip safety checks.
   -l --line-length=<int>     How many characters per line to allow.
   -s --use-spaces=<int>      Use spaces for indent instead of tabs.
+  -r --reorder-code          Reorder class-level definitions into the canonical
+                             order checked by gdlint's class-definitions-order.
   -h --help                  Show this screen.
   --version                  Show version.
   --dump-default-config      Dump default config to 'gdformatrc' file.
@@ -94,14 +96,27 @@ def main():
         else config.get("safety_checks", DEFAULT_CONFIG["safety_checks"])
     )
 
+    reorder_code = (
+        arguments["--reorder-code"]
+        if arguments.get("--reorder-code")
+        else config.get("reorder_code", DEFAULT_CONFIG["reorder_code"])
+    )
+
     if files == ["-"]:
-        _format_stdin(line_length, spaces_for_indent, safety_checks)
+        _format_stdin(line_length, spaces_for_indent, safety_checks, reorder_code)
     elif arguments["--check"]:
         _check_files_formatting(
-            files, line_length, spaces_for_indent, arguments["--diff"], safety_checks
+            files,
+            line_length,
+            spaces_for_indent,
+            arguments["--diff"],
+            safety_checks,
+            reorder_code,
         )
     else:
-        _format_files(files, line_length, spaces_for_indent, safety_checks)
+        _format_files(
+            files, line_length, spaces_for_indent, safety_checks, reorder_code
+        )
 
 
 def _dump_default_config() -> None:
@@ -155,24 +170,28 @@ def _update_config_with_missing_entries_inplace(config: dict) -> None:
 
 
 def _format_stdin(
-    line_length: int, spaces_for_indent: Optional[int], safety_checks: bool
+    line_length: int,
+    spaces_for_indent: Optional[int],
+    safety_checks: bool,
+    reorder_code: bool,
 ) -> None:
     code = sys.stdin.read()
     success, _, formatted_code = _format_code(
-        code, line_length, spaces_for_indent, "STDIN", safety_checks
+        code, line_length, spaces_for_indent, "STDIN", safety_checks, reorder_code
     )
     if not success:
         sys.exit(1)
     print(formatted_code, end="")
 
 
-# pylint: disable-next=too-many-locals
+# pylint: disable-next=too-many-locals, too-many-arguments, too-many-positional-arguments
 def _check_files_formatting(
     files: List[str],
     line_length: int,
     spaces_for_indent: Optional[int],
     print_diff: bool,
     safety_checks: bool,
+    reorder_code: bool,
 ) -> None:
     formattable_files = set()
     failed_files = set()
@@ -181,7 +200,12 @@ def _check_files_formatting(
             with open(file_path, "r", encoding="utf-8") as handle:
                 code = handle.read()
                 success, actually_formatted, formatted_code = _format_code(
-                    code, line_length, spaces_for_indent, file_path, safety_checks
+                    code,
+                    line_length,
+                    spaces_for_indent,
+                    file_path,
+                    safety_checks,
+                    reorder_code,
                 )
                 if success and actually_formatted:
                     print(f"would reformat {file_path}", file=sys.stderr)
@@ -228,11 +252,13 @@ def _check_files_formatting(
     sys.exit(1)
 
 
+# pylint: disable-next=too-many-locals
 def _format_files(
     files: List[str],
     line_length: int,
     spaces_for_indent: Optional[int],
     safety_checks: bool,
+    reorder_code: bool,
 ) -> None:
     formatted_files = set()
     failed_files = set()
@@ -241,7 +267,12 @@ def _format_files(
             with open(file_path, "r+", encoding="utf-8") as handle:
                 code = handle.read()
                 success, actually_formatted, formatted_code = _format_code(
-                    code, line_length, spaces_for_indent, file_path, safety_checks
+                    code,
+                    line_length,
+                    spaces_for_indent,
+                    file_path,
+                    safety_checks,
+                    reorder_code,
                 )
                 if success and actually_formatted:
                     print(f"reformatted {file_path}")
@@ -270,12 +301,14 @@ def _format_files(
     sys.exit(0 if len(failed_files) == 0 else 1)
 
 
+# pylint: disable-next=too-many-arguments, too-many-positional-arguments
 def _format_code(
     code: str,
     line_length: int,
     spaces_for_indent: Optional[int],
     file_path: str,
     safety_checks: bool,
+    reorder_code: bool = False,
 ) -> Tuple[bool, bool, str]:
     success = True
     actually_formatted = False
@@ -290,6 +323,7 @@ def _format_code(
             spaces_for_indent=spaces_for_indent,
             parse_tree=code_parse_tree,
             comment_parse_tree=comment_parse_tree,
+            reorder_code=reorder_code,
         )
         if formatted_code != code:
             actually_formatted = True
@@ -301,6 +335,7 @@ def _format_code(
                     spaces_for_indent=spaces_for_indent,
                     given_code_parse_tree=code_parse_tree,
                     given_code_comment_parse_tree=comment_parse_tree,
+                    reorder_code=reorder_code,
                 )
     except lark.exceptions.UnexpectedToken as exception:
         success = False

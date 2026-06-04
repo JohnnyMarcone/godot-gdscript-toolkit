@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 import difflib
 
 from lark import Tree, Transformer, Token
@@ -112,6 +112,7 @@ def check_tree_invariant(
     formatted_code: str,
     given_code_parse_tree: Optional[Tree] = None,
     formatted_code_parse_tree: Optional[Tree] = None,
+    reorder_code: bool = False,
 ) -> None:
     given_code_parse_tree = (
         given_code_parse_tree
@@ -128,6 +129,12 @@ def check_tree_invariant(
     formatted_code_parse_tree = loosen_tree_transformer.transform(
         formatted_code_parse_tree
     )
+    if reorder_code:
+        # Reordering deliberately permutes class-body members, so compare the
+        # trees order-insensitively at class scope. This still catches any member
+        # being added, removed or mutated.
+        given_code_parse_tree = _sort_class_body_children(given_code_parse_tree)
+        formatted_code_parse_tree = _sort_class_body_children(formatted_code_parse_tree)
     if given_code_parse_tree != formatted_code_parse_tree:
         diff = "\n".join(
             difflib.unified_diff(
@@ -138,12 +145,33 @@ def check_tree_invariant(
         raise TreeInvariantViolation(diff)
 
 
+def _sort_class_body_children(node: Tree) -> Tree:
+    """Return a copy of the tree with ``start``/``class_def`` body children sorted
+    by a canonical key, so member order no longer affects equality."""
+    new_children = [
+        _sort_class_body_children(child) if isinstance(child, Tree) else child
+        for child in node.children
+    ]
+    if node.data == "start":
+        new_children = sorted(new_children, key=_canonical_key)
+    elif node.data == "class_def":
+        # Keep the leading class-name token (and header) in place; sort the body.
+        new_children = new_children[:1] + sorted(new_children[1:], key=_canonical_key)
+    return Tree(node.data, new_children)
+
+
+def _canonical_key(node: Union[Tree, Token]) -> str:
+    return node.pretty() if isinstance(node, Tree) else repr(node)
+
+
+# pylint: disable-next=too-many-arguments, too-many-positional-arguments
 def check_formatting_stability(
     formatted_code: str,
     max_line_length: int,
     parse_tree: Optional[Tree] = None,
     comment_parse_tree: Optional[Tree] = None,
     spaces_for_indent: Optional[int] = None,
+    reorder_code: bool = False,
 ) -> None:
     code_formatted_again = format_code(
         formatted_code,
@@ -151,6 +179,7 @@ def check_formatting_stability(
         parse_tree=parse_tree,
         comment_parse_tree=comment_parse_tree,
         spaces_for_indent=spaces_for_indent,
+        reorder_code=reorder_code,
     )
     if formatted_code != code_formatted_again:
         diff = "\n".join(

@@ -19,7 +19,38 @@ from .comments import (
 )
 
 
+# pylint: disable-next=too-many-arguments, too-many-positional-arguments
 def format_code(
+    gdscript_code: str,
+    max_line_length: int,
+    spaces_for_indent: Optional[int] = None,
+    parse_tree: Optional[Tree] = None,
+    comment_parse_tree: Optional[Tree] = None,
+    reorder_code: bool = False,
+) -> str:
+    formatted_code = _format_code_once(
+        gdscript_code,
+        max_line_length,
+        spaces_for_indent,
+        parse_tree,
+        comment_parse_tree,
+    )
+    if reorder_code:
+        # Imported lazily to avoid an import cycle: common.ast pulls in the
+        # formatter package, and reordering depends on common.ast.
+        # pylint: disable-next=import-outside-toplevel
+        from .reordering import reorder_class_members
+
+        reordered_code = reorder_class_members(formatted_code)
+        if reordered_code != formatted_code:
+            # Reformat to normalize blank-line spacing between the moved members.
+            formatted_code = _format_code_once(
+                reordered_code, max_line_length, spaces_for_indent
+            )
+    return formatted_code
+
+
+def _format_code_once(
     gdscript_code: str,
     max_line_length: int,
     spaces_for_indent: Optional[int] = None,
