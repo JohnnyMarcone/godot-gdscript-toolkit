@@ -201,3 +201,35 @@ def test_formatting_with_line_length_passed_as_argument(tmp_path):
         capture_output=True,
     )
     assert outcome.returncode == 1
+
+
+def test_out_of_order_file_left_unchanged_without_reorder(tmp_path):
+    dummy_file = write_file(tmp_path, "script.gd", "var x = 1\nsignal s\n")
+    outcome = subprocess.run(
+        ["gdformat", "--check", dummy_file], check=False, capture_output=True
+    )
+    assert outcome.returncode == 0
+    assert len(outcome.stderr.decode().splitlines()) == 0
+
+
+def test_out_of_order_file_reordered_with_reorder_flag(tmp_path):
+    dummy_file = write_file(tmp_path, "script.gd", "var x = 1\nsignal s\n")
+    outcome = subprocess.run(
+        ["gdformat", "--reorder-code", dummy_file], check=False, capture_output=True
+    )
+    assert outcome.returncode == 0, outcome.stderr.decode()
+    assert "Traceback" not in outcome.stderr.decode()
+    with open(dummy_file, "r", encoding="utf-8") as handle:
+        reordered = handle.read()
+    assert reordered.index("signal s") < reordered.index("var x")
+
+
+def test_out_of_order_file_check_with_reorder_flag(tmp_path):
+    dummy_file = write_file(tmp_path, "script.gd", "var x = 1\nsignal s\n")
+    outcome = subprocess.run(
+        ["gdformat", "--check", "--reorder-code", dummy_file],
+        check=False,
+        capture_output=True,
+    )
+    assert outcome.returncode == 1
+    assert "Traceback" not in outcome.stderr.decode()

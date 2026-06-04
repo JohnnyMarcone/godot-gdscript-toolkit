@@ -5,6 +5,7 @@ from typing import List, Dict, Set
 
 from .problem import Problem
 from ..parser import parser
+from ..common.ordering import DEFAULT_CLASS_DEFINITIONS_ORDER
 from .types import Range
 from . import (
     basic_checks,
@@ -56,22 +57,7 @@ DEFAULT_CONFIG = MappingProxyType(
         # unreachable # check in godot
         # using-constant-test # check in godot
         # class checks
-        "class-definitions-order": [
-            "tools",
-            "classnames",
-            "extends",
-            "docstrings",
-            "signals",
-            "enums",
-            "consts",
-            "staticvars",
-            "exports",
-            "pubvars",
-            "prvvars",
-            "onreadypubvars",
-            "onreadyprvvars",
-            "others",
-        ],
+        "class-definitions-order": list(DEFAULT_CLASS_DEFINITIONS_ORDER),
         # useless-super-delegation
         # design checks
         # max-locals
