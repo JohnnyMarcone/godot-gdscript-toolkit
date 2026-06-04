@@ -18,6 +18,7 @@ DEFAULT_CONFIG = MappingProxyType(
         "safety_checks": None,
         "use_spaces": None,
         "line_length": 100,
+        "reorder_code": False,
     }
 )
 
@@ -32,6 +33,7 @@ def check_formatting_safety(
     given_code_parse_tree: Optional[Tree] = None,
     given_code_comment_parse_tree: Optional[Tree] = None,
     spaces_for_indent: Optional[int] = None,
+    reorder_code: bool = False,
 ) -> None:
     if given_code == formatted_code:
         return
@@ -48,6 +50,7 @@ def check_formatting_safety(
         formatted_code,
         given_code_parse_tree=given_code_parse_tree,
         formatted_code_parse_tree=formatted_code_parse_tree,
+        reorder_code=reorder_code,
     )
     check_formatting_stability(
         formatted_code,
@@ -55,4 +58,5 @@ def check_formatting_safety(
         parse_tree=formatted_code_parse_tree,
         comment_parse_tree=formatted_code_comment_parse_tree,
         spaces_for_indent=spaces_for_indent,
+        reorder_code=reorder_code,
     )

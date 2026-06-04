@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+ - Added `gdformat --reorder-code` to reorder class-level definitions into the canonical order checked by gdlint's `class-definitions-order` rule
+
 ## [4.5.0] 2025-10-09
 
 ### Added
