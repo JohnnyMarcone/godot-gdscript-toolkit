@@ -4,6 +4,8 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Buy me a coffe](https://img.shields.io/badge/Buy%20me%20a%20coffe-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/pawel_lampe)
 
+> **Note:** This is a fork of [Scony/godot-gdscript-toolkit](https://github.com/Scony/godot-gdscript-toolkit) that adds a `gdformat --reorder-code` option for automatically reordering class-level definitions. See [Reordering definitions with gdformat](#reordering-definitions-with-gdformat) below.
+
 This project provides a set of tools for daily work with `GDScript`. At the moment it provides:
 
 - A parser that produces a parse tree for debugging and educational purposes.
@@ -92,6 +94,35 @@ class X:
 
 func bar():
 	print('bar')
+```
+
+### Reordering definitions with gdformat
+
+> This feature is specific to this fork.
+
+By default `gdformat` keeps your class-level definitions in the order you wrote them. Passing `--reorder-code` (short: `-r`) additionally reorders them into the canonical order checked by `gdlint`'s `class-definitions-order` rule (tools → `class_name` → `extends` → docstrings → signals → enums → consts → static vars → exports → public vars → private vars → `@onready` vars → functions/classes). The relative order *within* each group is preserved, and each definition's comments, annotations and property bodies move with it.
+
+So, given a `test.gd` file:
+
+```
+func foo():
+	pass
+signal my_signal
+extends Node
+var health = 100
+```
+
+when you execute `gdformat --reorder-code test.gd`, it will be reordered and formatted as follows:
+
+```
+extends Node
+
+signal my_signal
+var health = 100
+
+
+func foo():
+	pass
 ```
 
 ## Parsing with gdparse [(more)](https://github.com/Scony/godot-gdscript-toolkit/wiki/2.-Parser)
